@@ -1,0 +1,341 @@
+---
+title: "BikeSharing Case Study"
+author: "By Daniil Mikhelkis"
+date: "2023-08-30"
+output:
+  github_document
+---
+<style>
+body {
+  font-size: 16px;
+  color:black;
+}
+</style>
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Analyzing Steps](#analyzing-steps)
+  - [Ask](#ask)
+  - [Prepare](#prepare)
+  - [Process](#process)
+  - [Analyze](#analyze)
+  - [Share and Act](#share-and-act)
+- [Conclusion](#conclusion)
+
+
+
+
+
+# Introduction
+
+## Scenario
+You are a junior data analyst working in the marketing analyst team at Cyclistic, a bike-share company in Chicago. The director of
+marketing believes the company’s future success depends on maximizing the number of annual memberships. Therefore, your
+team wants to understand how casual riders and annual members use Cyclistic bikes differently. From these insights, your team will
+design a new marketing strategy to convert casual riders into annual members. But first, Cyclistic executives must approve your
+recommendations, so they must be backed up with compelling data insights and professional data visualizations.
+
+## Characters and teams
+* Cyclistic: A bike-share program that features more than 5,800 bicycles and 600 docking stations. Cyclistic sets itself apart
+by also offering reclining bikes, hand tricycles, and cargo bikes, making bike-share more inclusive to people with disabilities
+and riders who can’t use a standard two-wheeled bike. The majority of riders opt for traditional bikes; about 8% of riders use
+the assistive options. Cyclistic users are more likely to ride for leisure, but about 30% use them to commute to work each day.
+
+* Lily Moreno: The director of marketing and your manager. Moreno is responsible for the development of campaigns and
+initiatives to promote the bike-share program. These may include email, social media, and other channels.
+
+* Cyclistic marketing analytics team: A team of data analysts who are responsible for collecting, analyzing, and reporting
+data that helps guide Cyclistic marketing strategy. You joined this team six months ago and have been busy learning about
+Cyclistic’s mission and business goals — as well as how you, as a junior data analyst, can help Cyclistic achieve them.
+
+* Cyclistic executive team: The notoriously detail-oriented executive team will decide whether to approve the
+recommended marketing program.
+
+## About the company
+In 2016, Cyclistic launched a successful bike-share offering. Since then, the program has grown to a fleet of 5,824 bicycles that are
+geotracked and locked into a network of 692 stations across Chicago. The bikes can be unlocked from one station and returned to
+any other station in the system anytime.
+Until now, Cyclistic’s marketing strategy relied on building general awareness and appealing to broad consumer segments. One approach that helped make these things possible was the flexibility of its pricing plans: single-ride passes, full-day passes, and
+annual memberships. **Customers who purchase single-ride or full-day passes are referred to as casual riders. Customers who
+purchase annual memberships are Cyclistic members.**
+Cyclistic’s finance analysts have concluded that annual members are much more profitable than casual riders. Although the pricing
+flexibility helps Cyclistic attract more customers, **Moreno believes that maximizing the number of annual members will be key to
+future growth.** Rather than creating a marketing campaign that targets all-new customers, Moreno believes there is a very good
+chance to convert casual riders into members. She notes that casual riders are already aware of the Cyclistic program and have
+chosen Cyclistic for their mobility needs.
+**Moreno has set a clear goal: Design marketing strategies aimed at converting casual riders into annual members**. In order to do
+that, however, the marketing analyst team needs to better understand how annual members and casual riders differ, why casual
+riders would buy a membership, and how digital media could affect their marketing tactics. Moreno and her team are interested in
+analyzing the Cyclistic historical bike trip data to identify trends.
+
+
+
+
+# Analyzing steps
+Firstly, we are going to divide our analysis into 7 different phases: 
+**Ask-Prepare-Process-Analyze-Share-Act**
+
+## **Ask**
+Three questions will guide the future marketing program:
+
+* *How do annual members and casual riders use Cyclistic bikes differently?*
+
+* *Why would casual riders buy Cyclistic annual memberships?*
+
+* *How can Cyclistic use digital media to influence casual riders to become members?*
+
+
+Lets identify the **Buisness Task**:
+
+*Based on data, design marketing strategies aimed at converting casual riders into annual members since maximizing the number of annual members will be key to
+future growth of the company.*
+
+**My analysis will be focused on answering the first question:** *How do annual members and casual riders use Cyclistic bikes differently?*
+
+
+## **Prepare**
+*The data has been made available by Motivate International Inc. under this* [license](https://www.divvybikes.com/data-license-agreement).
+
+Data for the analysis is located [here](https://divvy-tripdata.s3.amazonaws.com/index.html).
+
+We download the Data sets ***from January 2022 to December 2022*** and store into ***"Coursera_Capstone_Project"*** folder.
+
+Then rename files according to the file-naming conventions to simplify the readability and management. (Ex.:  "202201-divvy-tripdata.csv" -> "2022_01_tripdata.csv")
+
+
+## **Process**
+Since the data set is large, we will be using **Rstudio** IDE for the analysis, which also possesses advanced data manipulation and visualization tools.
+
+The ***Process*** phase will require a *Tidyverse* package collection:
+```{}
+install.packages("tidyverse")
+library(tidyverse)
+```
+We import our files:
+```{}
+Jan_2022 <-read.csv("2022_01_tripdata.csv")
+Feb_2022 <-read.csv("2022_02_tripdata.csv")
+...
+Dec_2022 <-read.csv("2022_12_tripdata.csv")
+```
+We merge all our data sets into one named ***"all_trips_2022"***, since they all share identical format(same number of columns and their names), we wil be using ***bind_rows()*** function from **dplyr** package.
+```{}
+all_trips_2022 <- bind_rows(Jan_2022, Feb_2022, Mar_2022, Apr_2022, May_2022, Jun_2022, Jul_2022, Aug_2022, Sep_2022, Oct_2022, Nov_2022, Dec_2022)
+```
+Lets **clean** the data set:
+We will be using ***clean_names*** function(which removes special characters and spaces, converts column names to lowercase) from **janitor** package:
+```{}
+install.packages("janitor")
+library(janitor)
+all_trips_2022 <- clean_names(all_trips_2022)
+```
+Removing lat, long as this data was dropped beginning in 2020:
+```{}
+all_trips_2022 <- all_trips_2022 %>%
+  select(-c(start_lat, start_lng, end_lat, end_lng))
+```
+
+**There are a few problems we will need to fix:**
+
+(1) The data can only be aggregated at the ride-level, which is too granular. We will want to add some additional columns of data -- such as day, month, year -- that provide additional opportunities to aggregate the data.
+(2) We will want to add a calculated field for length of ride.(we can use basic subtraction of two columns or use ***difftime()*** function)
+(3) There are some rides where tripduration(ride_length) shows up as negative, including several hundred rides where Divvy took bikes out of circulation for Quality Control reasons. We will want to delete these rides.
+
+As we can see the ***"started_at"*** and ***"ended_at"*** columns are ***character*** type, for further analysis and manipulation, we will have to convert it into ***Date*** type, using ***as.POSIXct()*** function from **lubridate** package to extract required data:
+
+(1)Converting data type and extracting additional columns
+```{}
+all_trips_2022$ended_at <- as.POSIXct(all_trips_2022$ended_at, format = "%Y-%m-%d %H:%M:%S")
+all_trips_2022$started_at <- as.POSIXct(all_trips_2022$started_at, format = "%Y-%m-%d %H:%M:%S")
+all_trips_2022$year <- year(all_trips_2022$started_at)
+all_trips_2022$month <- month(all_trips_2022$started_at)
+all_trips_2022$day <- day(all_trips_2022$started_at)
+all_trips_2022$hour <- hour(all_trips_2022$started_at)
+all_trips_2022$week_day <- wday(all_trips_2022$started_at)
+```
+
+(2)Adding new column ***trip_duration*** and converting it into 'numeric' data type for further analysis
+```{}
+all_trips_2022$trip_duration <- all_trips_2022$ended_at - all_trips_2022$started_at
+all_trips_2022$trip_duration <- as.numeric(all_trips_2022$trip_duration)
+```
+
+(3)Removing **bad** data
+```{}
+all_trips_2022 <- all_trips_2022[!(all_trips_2022$start_station_name == "HQ QR" | all_trips_2022$trip_duration<=0),]
+all_trips_2022 <- na.omit(all_trips_2022)
+```
+Now we are set for the next phase.
+
+## **Analyze**
+
+### Descriptive analysis on "trip_duration":
+```{r, echo=FALSE, include=FALSE}
+library(tidyverse)
+```
+
+```{r}
+all_trips_2022 <- read.csv("all_trips_2022_cleaned.csv")
+all_trips_2022 %>%
+  summarise(
+    mean_duration = mean(trip_duration),
+    max_duration = max(trip_duration),
+    min_duration = min(trip_duration)
+  )
+```
+
+### Let's find the average ride time and amount of rides grouped by each day for members and casual users:
+```{r}
+all_trips_2022$day_of_week <- ordered(all_trips_2022$day_of_week, levels=c("Monday","Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))##putting days in order
+all_trips_2022 %>%
+  group_by(member_casual, day_of_week) %>%
+  summarise(number_of_rides = n(), average_duration = mean(trip_duration)) %>%
+  arrange(member_casual, day_of_week)
+```
+
+
+### Let's identify the most popular stations:
+```{r}
+all_trips_2022 %>%
+  group_by(start_station_name) %>%
+  summarise(station_count=n()) %>%
+  arrange(desc(station_count))
+```
+
+```{r}
+all_trips_2022 %>%
+  group_by(end_station_name) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+```
+Seems like ***"Streeter Dr & Grand Ave"*** is by far the most popular station, but the data is still hard to read.
+
+.
+
+
+## **Share and Act**
+
+In order to share our findings in the most effective way, we will have to do it through the art of visualization, we are going to create a series of plots to tell our data story.
+
+**Each chunk of code will be followed with a plot.**
+
+First, we will start with the total number of rides and average bike trip duration for each type of customer or busiest periods of time in short, then we will move to Customers' bike type preferences and conclude our visualizaion phase with the most popular bike stations. Let's begin:
+
+```{r}
+options(scipen = 999)##removing scientific notations, while displaying number of rides(ex:2e+05->200000)
+all_trips_2022 %>%
+  group_by(member_casual, month) %>%
+  summarise(number_of_rides = n(),  average_duration = mean(trip_duration)) %>%
+  arrange(member_casual, month) %>%
+  ggplot(aes(x = month, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  labs(x="Month", y="Number of rides", title = "Busiest months of 2022",subtitle = "Customers' total number of rides per month", fill= "Customer")+
+  scale_x_continuous(breaks = 1:12,labels = month.abb[1:12])
+```
+
+```{r}
+all_trips_2022 %>%
+  group_by(member_casual, day_of_week, month) %>%
+  summarise(number_of_rides = n(),  average_duration = mean(trip_duration)) %>%
+  arrange(member_casual, month, day_of_week) %>%
+  ggplot(aes(x = day_of_week, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  labs(x="Day", y="Number of rides", title = "Busiest days of 2022", subtitle = "Customers' total number of rides per day of the week", fill= "Customer")
+```
+```{r}
+all_trips_2022 %>%
+  group_by(member_casual, hour) %>%
+  summarise(number_of_rides = n()) %>%
+  arrange(member_casual, hour) %>%
+  ggplot(aes(x = hour, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  labs(x="Hour", y="Number of rides", title = "Busiest hours of 2022",subtitle = "Customers' total number of rides per hour", fill="Customer")+
+  scale_x_continuous(breaks = 0:23)
+```
+
+
+```{r}
+all_trips_2022 %>%
+  group_by(member_casual, month) %>%
+  summarise(average_duration = mean(trip_duration)) %>%
+  arrange(member_casual, month) %>%
+  ggplot(aes(x = month, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  labs(x="Month", y="Average trip duration", title = "Trip duration of 2022",subtitle = "Average trip duration per month", fill= "Customer")+
+  scale_x_continuous(breaks = 1:12,labels = month.abb[1:12])
+```
+```{r}
+all_trips_2022 %>%
+  group_by(member_casual, day_of_week) %>%
+  summarise(average_duration = mean(trip_duration)) %>%
+  arrange(member_casual, day_of_week) %>%
+  ggplot(aes(x = day_of_week, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  labs(x="Month", y="Average trip duration", title = "Daily trip duration ",subtitle = "Average trip duration per day of the week", fill= "Customer")
+```
+
+
+
+```{r}
+all_trips_2022 %>%
+  group_by(member_casual, rideable_type) %>%
+  summarise(number_of_rides = n()) %>%
+  ggplot(aes(x= member_casual, y=number_of_rides, fill = rideable_type)) +
+  geom_col() +
+  geom_text(aes(label = paste0(round((number_of_rides / sum(number_of_rides)) * 100), "%")), position = position_stack(vjust = 0.5), size = 4)+
+  labs(title = "Customers' bike preferences", x="Customer type", y = "Number of rides", fill="Bike type")
+  
+```
+  
+```{r}
+all_trips_2022 %>%
+  filter(member_casual=="casual")%>%
+  group_by(rideable_type) %>%
+  summarise(number_of_rides = n()) %>%
+  ggplot(aes(x= "", y=number_of_rides, fill = rideable_type)) +
+  geom_col() +
+  geom_text(aes(label = paste0(round((number_of_rides / sum(number_of_rides)) * 100), "%")), position = position_stack(vjust = 0.5), size = 4)+
+  labs(title = "Casual customer bike preferences",x="Casual customer", y = "Number of rides", fill="Bike type")
+  
+```
+
+
+```{r}
+all_trips_2022 %>%
+  group_by(start_station_name) %>%
+  summarise(station_count = n()) %>%
+  arrange(desc(station_count)) %>%
+  filter(station_count<800000)%>%
+  slice_head(n = 5) %>%  # Keep only the top 5 stations
+  mutate(start_station_name = reorder(start_station_name, station_count)) %>%  # Reorder based on count
+  ggplot(aes(x = station_count, y = start_station_name, fill = station_count)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top 5 Most Popular Stations",
+       x = "Number of Rides",
+       y = "Station Name", fill = "Rides by station") +
+  theme_minimal()
+```
+
+
+# **Conclusion**
+
+## **Key findings from the analysis**
+* Period from June till August is the most active throughout the year for *casual* riders, **June being the busiest month**.
+* Weekend is the most active time for *casual* riders throughout the week, **Saturday being the busiest**.
+* The busiest hours for casual riders are **16-18 o'clock in the late afternoon** and **7-8 in the morning**
+* The **average trip duration** for casual customers is nearly **double or even triple** that of members.
+* More than half of casual customer rides were done on electric bike(~54%).
+* The "Streeter Dr & Grand Ave" is by far the most popular bike station and the closest to the shore.
+
+
+## **My top 3 suggestions based on analysis**:
+
+* Summer weekend evenings from 16-18 o'clock are the best time for marketing campaign, with the most popular stations being closer to the coast.
+
+* Electric bikes being the most popular, I'd suggest to increase the amount of units and their availability.
+
+* Since casual riders have the longest bike trips, my suggestion would be to initiate a campaign of offering different sorts of benefits and discounts for more distance covered by bike(free rides, minutes etc.) .
